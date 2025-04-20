@@ -12,14 +12,13 @@ public class Flight {
     public float y;
     public float x;
     public boolean isGoingUp = false;
-    public boolean isShooting = false; // Thêm trạng thái bắn tự động
+    public boolean isShooting = false;
     private Bitmap flight1;
     private Bitmap flight2;
     private Bitmap dead;
     private int flyCounter = 0;
 
     public Flight(GameView gameView, int screenY, android.content.res.Resources res) {
-
         this.gameView = gameView;
 
         flight1 = BitmapFactory.decodeResource(res, R.drawable.fly1);
@@ -27,10 +26,8 @@ public class Flight {
 
         width = flight1.getWidth();
         height = flight1.getHeight();
-
         width /= 4;
         height /= 4;
-
         width = (int) (width * GameView.screenRatioX);
         height = (int) (height * GameView.screenRatioY);
 
@@ -42,11 +39,10 @@ public class Flight {
 
         y = screenY / 2;
         x = (int) (64 * GameView.screenRatioX);
-
     }
 
     public Bitmap getFlight () {
-        if (isShooting) { // Kiểm tra trạng thái bắn tự động
+        if (isShooting) {
             gameView.newBullet();
         }
         if (flyCounter == 0) {
