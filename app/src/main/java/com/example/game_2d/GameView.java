@@ -1,7 +1,6 @@
 package com.example.game_2d;
 
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -13,6 +12,8 @@ import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.SoundPool;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
 
@@ -333,13 +334,13 @@ public class GameView extends SurfaceView implements Runnable {
     }
 
     private void waitBeforeExiting() {
-        try {
-            Thread.sleep(3000);
-            activity.startActivity(new Intent(activity, MainActivity.class));
-            activity.finish();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                GameOverActivity gameOverDialog = new GameOverActivity(activity, score);
+                gameOverDialog.show();
+            }
+        }, 17);
     }
 
     private void saveIfHighScore() {
