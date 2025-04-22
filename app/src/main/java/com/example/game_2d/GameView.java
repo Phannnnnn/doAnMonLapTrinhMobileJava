@@ -28,7 +28,6 @@ public class GameView extends SurfaceView implements Runnable {
     private int screenX, screenY, score = 0;
     public static float screenRatioX, screenRatioY;
     private Paint paint;
-    private Bird[] birds;
     private SharedPreferences prefs;
     private Random random;
     private SoundPool soundPool;
@@ -40,6 +39,8 @@ public class GameView extends SurfaceView implements Runnable {
     private long lastShootTime = 0;
     private long SHOOT_INTERVAL = 200;
     private int birdCurrent = 5;
+    int speed_bird = 5;
+    ArrayList<Bird> birds;
 
     private float previousTouchX;
     private float previousTouchY;
@@ -47,6 +48,7 @@ public class GameView extends SurfaceView implements Runnable {
     private float flightVelocityY = 0;
     private final float VELOCITY_DAMPING = 0.9f;
     private final float MAX_VELOCITY = 100 * screenRatioX;
+    private int nextSpeedIncreaseScore = 100;
 
     private Paint scorePaint;
     private int lives = 3;
@@ -93,11 +95,11 @@ public class GameView extends SurfaceView implements Runnable {
         paint.setTextSize(128);
         paint.setColor(Color.WHITE);
 
-        birds = new Bird[birdCurrent];
+        birds = new ArrayList<>();
         for (int i = 0; i < birdCurrent; i++) {
-            Bird bird = new Bird(getResources());
-            birds[i] = bird;
+            birds.add(new Bird(getResources()));
         }
+
         random = new Random();
 
         scorePaint = new Paint();
@@ -121,6 +123,15 @@ public class GameView extends SurfaceView implements Runnable {
     }
 
     private void update () {
+        if (score >= nextSpeedIncreaseScore && speed_bird < 50) {
+            speed_bird += 5;
+            nextSpeedIncreaseScore += 100;
+            // Thêm bird nếu chưa đủ 10 con
+            if (birds.size() < 10) {
+                birds.add(new Bird(getResources()));
+            }
+        }
+
         //Tao hieu ung background dong
         background1.setX((int) (background1.getX() - (10*screenRatioX)));
         background2.setX((int) (background2.getX() - (10*screenRatioX)));
@@ -213,7 +224,7 @@ public class GameView extends SurfaceView implements Runnable {
         for (Bird bird : birds) {
             bird.x -= bird.speed;
 
-            //Neu doi tuong bird ra khoi man hinh khi chua bi ban trung thi tro choi ket thuc
+            //Neu doi tuong bird ra khoi man hinh khi chua bi ban trung
             if (bird.x + bird.width < 0) {
                 if (!bird.wasShot) {
                     lives--;
@@ -222,15 +233,8 @@ public class GameView extends SurfaceView implements Runnable {
                         return;
                     }
                 }
-
                 // Tao lai doi tuong bird
-                int bound = (int) (30 * screenRatioX);
-                bird.speed = random.nextInt(bound);
-
-                if (bird.speed < 10 * screenRatioX) {
-                    bird.speed = (int) (10 * screenRatioX);
-                }
-
+                bird.speed = speed_bird;
                 bird.x = screenX;
                 bird.y = random.nextInt(screenY - bird.height);
                 bird.wasShot = false;

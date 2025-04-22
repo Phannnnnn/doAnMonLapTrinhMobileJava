@@ -10,7 +10,7 @@ import android.graphics.Rect;
 
 public class Bird {
 
-    public int speed = 20;
+    public int speed = 10;
     public boolean wasShot = true;
     int x = 0, y, width, height, birdCounter = 1;
     Bitmap bird1, bird2, bird3, bird4;
