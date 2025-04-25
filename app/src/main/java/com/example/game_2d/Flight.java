@@ -38,7 +38,6 @@ public class Flight {
         dead = Bitmap.createScaledBitmap(dead, width, height, false);
 
         y = screenY / 2;
-        x = (int) (64 * GameView.screenRatioX);
     }
 
     public Bitmap getFlight () {

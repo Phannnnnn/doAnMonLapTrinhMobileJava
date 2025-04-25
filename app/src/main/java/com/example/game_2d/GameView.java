@@ -8,12 +8,14 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.SoundPool;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
 
@@ -25,7 +27,7 @@ public class GameView extends SurfaceView implements Runnable {
 
     private Thread thread;
     private boolean isPlaying, isGameOver = false;
-    private int screenX, screenY, score = 0;
+    private int screenX, screenY, score = 0, highScore;
     public static float screenRatioX, screenRatioY;
     private Paint paint;
     private SharedPreferences prefs;
@@ -50,7 +52,8 @@ public class GameView extends SurfaceView implements Runnable {
     private final float MAX_VELOCITY = 100 * screenRatioX;
     private int nextSpeedIncreaseScore = 100;
 
-    private Paint scorePaint;
+    private Paint scorePaint, highScorePaint;
+
     private int lives = 3;
     private Bitmap heartFull;
     int heartHeight,heartWidth;
@@ -60,8 +63,10 @@ public class GameView extends SurfaceView implements Runnable {
     public GameView(GameActivity activity, int screenX, int screenY) {
         super(activity);
         this.activity = activity;
+
         //Tao file game.xml de luu diem
         prefs = activity.getSharedPreferences("game", Context.MODE_PRIVATE);
+        highScore = prefs.getInt("highscore", 0);
 
         //Tao am thanh trong game
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -105,7 +110,14 @@ public class GameView extends SurfaceView implements Runnable {
         scorePaint = new Paint();
         scorePaint.setTextSize(80);
         scorePaint.setColor(Color.WHITE);
+        scorePaint.setAntiAlias(true);
         scorePaint.setShadowLayer(5, 2, 2, Color.BLACK);
+
+        highScorePaint = new Paint();
+        highScorePaint.setTextSize(80);
+        highScorePaint.setColor(Color.BLUE);
+        highScorePaint.setAntiAlias(true);
+        highScorePaint.setTypeface(Typeface.DEFAULT_BOLD);
 
         heartFull = BitmapFactory.decodeResource(getResources(), R.drawable.heart_full);
         heartWidth = (int) (50 * screenRatioX);
@@ -123,13 +135,15 @@ public class GameView extends SurfaceView implements Runnable {
     }
 
     private void update () {
-        if (score >= nextSpeedIncreaseScore && speed_bird < 50) {
-            speed_bird += 5;
-            nextSpeedIncreaseScore += 100;
-            // Thêm bird nếu chưa đủ 10 con
+        if (score >= nextSpeedIncreaseScore) {
+            if(speed_bird < 50)
+            {
+                speed_bird += 5;
+            }
             if (birds.size() < 10) {
                 birds.add(new Bird(getResources()));
             }
+            nextSpeedIncreaseScore += nextSpeedIncreaseScore;
         }
 
         //Tao hieu ung background dong
@@ -193,21 +207,23 @@ public class GameView extends SurfaceView implements Runnable {
                 trash.add(bullet);
             bullet.x += 50 * screenRatioX;
 
-            //Su ly khi dan va cham voi doi tuong bird
             for (Bird bird : birds) {
+                //Su ly khi dan va cham voi doi tuong bird
                 if (Rect.intersects(bird.getCollisionShape(),bullet.getCollisionShape())){
-                    score++;
+                    ++score;
+                    if(highScore < score){
+                        highScore = score;
+                    }
                     int collisionX = bird.x;
                     int collisionY = bird.y;
 
                     //Dua doi tuong bird ra khoi man hinh
-                    score++;
-                    bird.x = -500;
-                    bullet.x = screenX + 500;
+                    bird.x = -10;
+                    bullet.x = screenX + 10;
                     bird.wasShot = true;
 
                     int dropChance = random.nextInt(100);
-                    if (dropChance < 30) {
+                    if (dropChance < 15) {
                         int randomCollectibleType = random.nextInt(3);
                         Collectible newCollectible = new Collectible(getResources(), screenX, screenY, randomCollectibleType);
                         newCollectible.x = collisionX;
@@ -215,11 +231,24 @@ public class GameView extends SurfaceView implements Runnable {
                         collectibles.add(newCollectible);
                     }
                 }
+
+                if (Rect.intersects(bird.getCollisionShape(), flight.getCollisionShape())) {
+                    if (!bird.wasShot) {
+                        lives--;
+                        if (lives <= 0) {
+                            isGameOver = true;
+                            return;
+                        } else {
+                            bird.speed = speed_bird;
+                            bird.x = screenX;
+                            bird.y = random.nextInt(screenY - bird.height);
+                            bird.wasShot = false;
+                        }
+                    }
+                }
             }
         }
-
-        for (Bullet bullet : trash)
-            bullets.remove(bullet);
+        bullets.removeAll(trash);
 
         for (Bird bird : birds) {
             bird.x -= bird.speed;
@@ -240,33 +269,10 @@ public class GameView extends SurfaceView implements Runnable {
                 bird.wasShot = false;
             }
 
-            //Khi doi tuong flight va cham voi doi tuong bird thi ket thuc tro choi
-            if (Rect.intersects(bird.getCollisionShape(), flight.getCollisionShape())) {
-                if (!bird.wasShot) {
-                    lives--;
-                    bird.x = -500;
-
-                    if (lives <= 0) {
-                        isGameOver = true;
-                        return;
-                    } else {
-                        int bound = (int) (30 * screenRatioX);
-                        bird.speed = random.nextInt(bound);
-                        if (bird.speed < 10 * screenRatioX) {
-                            bird.speed = (int) (10 * screenRatioX);
-                        }
-                        bird.x = screenX;
-                        bird.y = random.nextInt(screenY - bird.height);
-                        bird.wasShot = false;
-                    }
-                }
-            }
-
-            // Cập nhật vật phẩm
+            //Cap nhat vat pham
             List<Collectible> collectibleTrash = new ArrayList<>();
             for (Collectible collectible : collectibles) {
-                collectible.update();
-
+                collectible.x -= 5 * screenRatioX;
                 if (collectible.y > screenY) {
                     collectibleTrash.add(collectible);
                 }
@@ -275,7 +281,7 @@ public class GameView extends SurfaceView implements Runnable {
                     if (collectible.type == 0) {
                         score += 10;
                     } else if (collectible.type == 1) {
-                        lives = Math.min(lives + 1, 5);
+                        lives = Math.min(++lives, 5);
                     } else if (collectible.type == 2 && SHOOT_INTERVAL > 11) {
                         SHOOT_INTERVAL -= 5;
                     }
@@ -301,6 +307,16 @@ public class GameView extends SurfaceView implements Runnable {
             canvas.drawBitmap(background1.getBackground(), background1.getX(), background1.getY(), paint);
             canvas.drawBitmap(background2.getBackground(), background2.getX(), background2.getY(), paint);
 
+            String scoreText = "Điểm: " + score;
+            Rect bounds = new Rect();
+            scorePaint.getTextBounds(scoreText, 0, scoreText.length(), bounds);
+            canvas.drawText(scoreText, 50, 100, scorePaint);
+
+            String highScoreText = "Kỷ lục: " + highScore;
+            Rect highScoreBounds = new Rect();
+            highScorePaint.getTextBounds(highScoreText, 0, highScoreText.length(), highScoreBounds);
+            canvas.drawText(highScoreText, 50, 168, highScorePaint);
+
             for (int i = 0; i < lives; i++) {
                 int x = screenX - heartWidth * (i + 1) - 20 * (i + 1);
                 if (i < lives) {
@@ -308,14 +324,11 @@ public class GameView extends SurfaceView implements Runnable {
                 }
             }
 
-            for (Bird bird : birds)
-            {
-                canvas.drawBitmap(bird.getBird(), bird.x, bird.y, paint);
+            for (Bird bird : birds) {
+                if (!bird.wasShot && bird.x >= 0) {
+                    canvas.drawBitmap(bird.getBird(), bird.x, bird.y, paint);
+                }
             }
-            String scoreText = "Điểm: " + score;
-            Rect bounds = new Rect();
-            scorePaint.getTextBounds(scoreText, 0, scoreText.length(), bounds);
-            canvas.drawText(scoreText, 50, 100, scorePaint);
 
             if (isGameOver) {
                 isPlaying = false;
@@ -348,9 +361,9 @@ public class GameView extends SurfaceView implements Runnable {
     }
 
     private void saveIfHighScore() {
-        if (prefs.getInt("highscore", 0) < score) {
+        if (prefs.getInt("highscore", 0) < highScore) {
             SharedPreferences.Editor editor = prefs.edit();
-            editor.putInt("highscore", score);
+            editor.putInt("highscore", highScore);
             editor.apply();
         }
     }

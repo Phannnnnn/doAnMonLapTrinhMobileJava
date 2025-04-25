@@ -13,7 +13,6 @@ import java.util.Random;
 public class Collectible {
     int x, y;
     int width, height;
-    int speed;
     boolean isCollected;
     int type; // 0: coin, 1: fuel, 2: star, etc.
     Bitmap bitmap;
@@ -40,23 +39,9 @@ public class Collectible {
         height = (int) (height * GameView.screenRatioY);
 
         bitmap = Bitmap.createScaledBitmap(bitmap, width, height, false);
-
-        // Đặt vị trí y ngẫu nhiên trên màn hình
-        Random random = new Random();
-        y = random.nextInt(screenY - height);
-
-        // Đặt vị trí x của vật phẩm tại vị trí của con chim
-        x = screenX;
-
-        // Tốc độ rơi vật phẩm
-        speed = (int) (5 * screenRatioX);
     }
 
     Rect getCollisionShape() {
         return new Rect(x, y, x + width, y + height);
-    }
-
-    public void update() {
-        x -= speed;
     }
 }
